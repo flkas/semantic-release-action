@@ -8,21 +8,23 @@ const outputs = require('./outputs.json');
  */
 module.exports = async (result) => {
   if (!result) {
-    core.debug('No release published.');
+    core.debug('No release published because of no result.');
     return Promise.resolve();
   }
 
   const {lastRelease, commits, nextRelease, releases} = await result;
 
   if (lastRelease.version) {
-    core.debug(`The last release was "${lastRelease.version}".`);
+    core.info(`lastRelease.version: ${lastRelease.version}`);
+    core.info(`lastRelease.gitHead: ${lastRelease.gitHead}`);
+    core.info(`lastRelease.gitTag: ${lastRelease.gitTag}`);
     core.setOutput(outputs.last_release_version, lastRelease.version);
     core.setOutput(outputs.last_release_git_head, lastRelease.gitHead);
     core.setOutput(outputs.last_release_git_tag, lastRelease.gitTag);
   }
 
   if (!nextRelease) {
-    core.debug('No release published.');
+    core.debug('No release published because of no nextRelease.');
     return Promise.resolve();
   }
 
