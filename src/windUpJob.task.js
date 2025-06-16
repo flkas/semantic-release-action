@@ -1,5 +1,23 @@
 const core = require('@actions/core');
 const outputs = require('./outputs.json');
+const { execSync } = require('child_process');
+
+function getLastTag() {
+  try {
+    return execSync('git describe --tags --abbrev=0').toString().trim();
+  } catch {
+    return '';
+  }
+}
+
+function getLastTagCommit(tag) {
+  try {
+    if (!tag) return '';
+    return execSync(`git rev-list -n 1 ${tag}`).toString().trim();
+  } catch {
+    return '';
+  }
+}
 
 /**
  * windUpJob
@@ -8,23 +26,26 @@ const outputs = require('./outputs.json');
  */
 module.exports = async (result) => {
   if (!result) {
-    core.debug('No release published because of no result.');
+    core.debug('No release published because of no result. Falling back to git for last release info.');
+    const lastTag = getLastTag();
+    const lastTagCommit = getLastTagCommit(lastTag);
+    core.setOutput(outputs.last_release_version, lastTag);
+    core.setOutput(outputs.last_release_git_head, lastTagCommit);
+    core.setOutput(outputs.last_release_git_tag, lastTag);
     return Promise.resolve();
   }
 
-  const {lastRelease, commits, nextRelease, releases} = await result;
+  const {lastRelease = {}, commits, nextRelease, releases} = await result;
 
+  core.setOutput(outputs.last_release_version, lastRelease.version || '');
+  core.setOutput(outputs.last_release_git_head, lastRelease.gitHead || '');
+  core.setOutput(outputs.last_release_git_tag, lastRelease.gitTag || '');
   if (lastRelease.version) {
-    core.info(`lastRelease.version: ${lastRelease.version}`);
-    core.info(`lastRelease.gitHead: ${lastRelease.gitHead}`);
-    core.info(`lastRelease.gitTag: ${lastRelease.gitTag}`);
-    core.setOutput(outputs.last_release_version, lastRelease.version);
-    core.setOutput(outputs.last_release_git_head, lastRelease.gitHead);
-    core.setOutput(outputs.last_release_git_tag, lastRelease.gitTag);
+    core.debug(`The last release was "${lastRelease.version}".`);
   }
 
   if (!nextRelease) {
-    core.debug('No release published because of no nextRelease.');
+    core.debug('No release published.');
     return Promise.resolve();
   }
 
